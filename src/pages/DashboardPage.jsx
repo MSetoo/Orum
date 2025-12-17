@@ -58,8 +58,7 @@ export default function DashboardPage() {
           </div>
           <h2>Monitorea por fecha</h2>
           <p className="muted">
-            Consulta y valida el texto del reporte en un entorno seguro con
-            visuales modernos y texturizados.
+            Consulta diariamente tus reportes.
           </p>
 
           <label className="field field--inline">
