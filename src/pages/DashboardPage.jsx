@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 import { getReportByDate } from "../api/reportsApi";
 import { getLocalDate } from "../utils/dateUtils";
+import buhosImg from "../utils/img/buhos.png";
 
 export default function DashboardPage() {
   const today = getLocalDate();
@@ -11,7 +12,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 🔄 Cargar reporte cuando cambia la fecha
   useEffect(() => {
     async function loadReport() {
       setLoading(true);
@@ -21,6 +21,7 @@ export default function DashboardPage() {
 
       if (error) {
         setReport(null);
+        setError("Estamos trabajando en eso...");
       } else {
         setReport(data);
       }
@@ -31,60 +32,89 @@ export default function DashboardPage() {
     loadReport();
   }, [selectedDate]);
 
-  // 🔐 Cerrar sesión
   async function handleLogout() {
     await supabase.auth.signOut();
   }
 
   return (
-    <div style={{ padding: 40, maxWidth: 900 }}>
-      {/* HEADER */}
-      <h1>Dashboard ORUM</h1>
+    <div className="page">
+      <header className="topbar">
+        <div className="brand">
+          <div>
+            <p className="eyebrow">ORUM</p>
+            <h1>Dashboard</h1>
+          </div>
+        </div>
 
-      <button onClick={handleLogout}>Cerrar sesión</button>
+        <button className="btn btn--ghost" onClick={handleLogout}>
+          Cerrar sesion
+        </button>
+      </header>
 
-      <hr />
+      <div className="content-grid">
+        <section className="card card--accent">
+          <div className="card__head">
+            <p className="eyebrow">Reporte diario</p>
+          </div>
+          <h2>Monitorea por fecha</h2>
+          <p className="muted">
+            Consulta y valida el texto del reporte en un entorno seguro con
+            visuales modernos y texturizados.
+          </p>
 
-      {/* SELECTOR DE FECHA */}
-      <section style={{ marginBottom: 20 }}>
-        <h2>Reporte diario</h2>
+          <label className="field field--inline">
+            <span>Fecha</span>
+            <input
+              className="input"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
+          </label>
 
-        <label>
-          Selecciona una fecha:{" "}
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
-        </label>
-      </section>
+          <div className="meta-block">
+            <span className="muted">Fecha seleccionada</span>
+            <span className="meta-value">{selectedDate}</span>
+          </div>
+        </section>
 
-      {/* CONTENIDO */}
-      <section>
-        <p>
-          <strong>Fecha:</strong> {selectedDate}
-        </p>
+        <section className="card report-card">
+          <div className="card__head">
+            <div>
+              <p className="eyebrow">Detalle</p>
+              <h3>Reporte de operaciones</h3>
+            </div>
+            <div>
+              {loading && <span className="pill pill--soft">Cargando</span>}
+              {!loading && report && (
+                <span className="eyebrow">Cargado</span>
+              )}
+              {!loading && !report && (
+                <span className="eyebrow">Sin datos</span>
+              )}
+            </div>
+          </div>
 
-        {loading && <p>Cargando reporte...</p>}
+          {loading && <p className="muted">Cargando reporte...</p>}
 
-        {!loading && !report && (
-          <p>No existe reporte para esta fecha</p>
-        )}
+          {!loading && error && (
+            <div className="empty-state">
+              <img
+                className="empty-illustration"
+                src={buhosImg}
+                alt="Buhos trabajando"
+              />
+              <p className="muted">Estamos trabajando en eso...</p>
+            </div>
+          )}
 
-        {report && (
-          <pre
-            style={{
-              whiteSpace: "pre-wrap",
-              background: "#f7f7f7",
-              padding: 20,
-              borderRadius: 6,
-              lineHeight: 1.5,
-            }}
-          >
-            {report.report_text}
-          </pre>
-        )}
-      </section>
+          {report && (
+            <div className="report-body">
+              {report.report_text}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

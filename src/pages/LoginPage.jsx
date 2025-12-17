@@ -15,27 +15,53 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ padding: 40 }}>
-      <h2>Login</h2>
+    <div className="page">
+      <div className="auth-brand">
+        <h1 className="brand-title">Orum</h1>
+        <p className="muted">Manejador de finanzas seguro.</p>
+      </div>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <br />
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <br />
-        <button>Entrar</button>
-      </form>
+      <div className="auth-grid auth-grid--single">
+        <section className="card form-card">
+          <div>
+            <p className="eyebrow">Ingreso</p>
+            <h2>Inicia sesion</h2>
+            <p className="muted">Usa tu correo para continuar.</p>
+          </div>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+          <form className="form" onSubmit={handleSubmit}>
+            <label className="field">
+              <span>Correo electronico</span>
+              <input
+                className="input"
+                type="email"
+                placeholder="tu@empresa.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </label>
+
+            <label className="field">
+              <span>Contrasena</span>
+              <input
+                className="input"
+                type="password"
+                placeholder="********"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </label>
+
+            {error && <p className="form__error">{error}</p>}
+
+            <button className="btn btn--primary btn--full" type="submit">
+              Entrar
+            </button>
+          </form>
+        </section>
+      </div>
     </div>
   );
 }
