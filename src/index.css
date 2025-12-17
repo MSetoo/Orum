@@ -29,11 +29,15 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
+    scrollbar-color: transparent transparent;
+    -ms-overflow-style: none; /* IE/Edge */
 }
 
 body::-webkit-scrollbar {
     width: 0;
     height: 0;
+    background: transparent;
+    display: none;
 }
 
 body::before {
