@@ -99,6 +99,12 @@ p {
     margin-bottom: 18px;
 }
 
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .brand {
     display: flex;
     align-items: center;

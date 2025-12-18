@@ -3,6 +3,7 @@ import { useSession } from "../auth/useSession";
 
 import LoginPage from "../pages/LoginPage";
 import DashboardPage from "../pages/DashboardPage";
+import MovementsPage from "../pages/MovementsPage";
 
 export default function AppRouter() {
   const { session, loading } = useSession();
@@ -22,6 +23,10 @@ export default function AppRouter() {
         <Route
           path="/"
           element={session ? <DashboardPage /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/movements"
+          element={session ? <MovementsPage /> : <Navigate to="/login" />}
         />
       </Routes>
     </BrowserRouter>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../api/supabaseClient";
 import { getReportByDate } from "../api/reportsApi";
 import { getLocalDate } from "../utils/dateUtils";
@@ -46,9 +47,14 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <button className="btn btn--ghost" onClick={handleLogout}>
-          Cerrar sesion
-        </button>
+        <div className="topbar-actions">
+          <Link className="btn btn--ghost" to="/movements">
+            Movimientos
+          </Link>
+          <button className="btn btn--ghost" onClick={handleLogout}>
+            Cerrar sesion
+          </button>
+        </div>
       </header>
 
       <div className="content-grid">

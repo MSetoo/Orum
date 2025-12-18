@@ -1,0 +1,140 @@
+.movements-page .navbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.movements-page .navbar a {
+  color: var(--text-primary);
+  text-decoration: none;
+  background: rgba(13, 16, 24, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.movements-page .navbar a:hover {
+  border-color: rgba(124, 231, 255, 0.4);
+  color: #b2f2ff;
+}
+
+.movements-container {
+  display: grid;
+  gap: 16px;
+}
+
+.movements-filters {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-field select.input {
+  background-color: rgba(13, 16, 24, 0.9);
+  color: var(--text-primary);
+}
+
+.filter-field select.input option {
+  background-color: #0b0f1a;
+  color: var(--text-primary);
+}
+
+.filter-label {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.movements-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.movements-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.movement-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+
+.movement-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.movement-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.movement-info {
+  flex: 1;
+}
+
+.movement-subject {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.movement-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.movement-amount {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.movement-amount--in {
+  color: var(--success);
+}
+
+.movement-amount--out {
+  color: #ff9aa8;
+}
+
+.movement-amount--neutral {
+  color: var(--text-secondary);
+}
+
+.movement-meta-item {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  color: var(--text-primary);
+}
+
+.movement-meta-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.movements-empty {
+  margin-top: 8px;
+}
