@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
+import MovementCard from "../components/MovementCard";
 import { getAllMovements } from "../api/movementsApi";
 import buhosImg from "../utils/img/buhos.png";
+import {
+  formatCategory,
+  formatDateShort,
+  formatMonthLabel,
+  formatSignedUsd,
+  getDateKey,
+  getMovementAmountStatus,
+  parseAmountValue,
+  resolveMovementAmount,
+  resolveMovementBank,
+} from "../utils/movementFormatters";
 import "../styles/movements.css";
 
 export default function MovementsPage() {
@@ -15,144 +27,80 @@ export default function MovementsPage() {
     category: "",
   });
 
-  function formatCategory(category) {
-    if (!category) return "Sin categoria";
-    const cleaned = String(category).replace(/_/g, " ").toLowerCase();
-    return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
-  }
+  function getDateRangeKeys() {
+    if (filteredMovements.length === 0) return [];
+    const parseDate = (value) => {
+      if (!value) return null;
+      const date = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(date.getTime())) return null;
+      return date;
+    };
 
-  function normalizeText(value) {
-    if (!value) return "";
-    return String(value).trim();
-  }
+    const dates = filteredMovements
+      .map((movement) => getDateKey(movement))
+      .filter(Boolean)
+      .map((value) => parseDate(value))
+      .filter(Boolean);
 
-  function getDateKey(movement) {
-    const raw = movement?.email_ts || movement?.created_at;
-    if (!raw) return "";
-    const date = new Date(raw);
-    if (Number.isNaN(date.getTime())) return "";
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
+    if (dates.length === 0) return [];
 
-  function getSubject(movement) {
-    const subject =
-      normalizeText(movement?.subject) ||
-      normalizeText(movement?.metadata?.subject) ||
-      "Movimiento";
-    return subject.replace(/retiro\s+cajero\s+aut\.?/gi, "Retiro cajero automatico");
-  }
+    const minDate = new Date(Math.min(...dates.map((date) => date.getTime())));
+    const maxDate = new Date(Math.max(...dates.map((date) => date.getTime())));
+    const start = parseDate(filters.dateFrom) || minDate;
+    const end = parseDate(filters.dateTo) || maxDate;
+    if (start > end) return [];
 
-  function resolveCounterparty(movement) {
-    const metadata = movement?.metadata || {};
-    const fromMetadata =
-      metadata?.transfer_details?.beneficiary ||
-      metadata?.counterparty ||
-      metadata?.merchant ||
-      metadata?.beneficiary;
-    const raw = movement?.counterparty || fromMetadata || "No registrada";
-    const cleaned = String(raw).trim();
-    if (/ub(?:r|er)\s*pending\.?ub/i.test(cleaned)) return "Uber";
-    if (/ub\s*eats\s*ecuado/i.test(cleaned)) return "Uber Eats";
-    if (/uber/i.test(cleaned)) return "Uber";
-    return cleaned;
-  }
-
-  function resolveAmount(movement) {
-    const metadata = movement?.metadata || {};
-    return (
-      movement?.amount_text ||
-      metadata?.transfer_details?.amount_text ||
-      metadata?.amount_text ||
-      ""
-    );
-  }
-
-  function normalizeAmount(amount) {
-    if (!amount) return "";
-    return String(amount).replace(/^[+-]\s*/, "").trim();
-  }
-
-  function getAmountStatus(movement) {
-    const metadata = movement?.metadata || {};
-    const subject = getSubject(movement).toLowerCase();
-    const category = normalizeText(movement?.category).toLowerCase();
-
-    if (metadata?.self_transfer) return "neutral";
-    if (subject.includes("transferencia entre cuentas propias")) {
-      return "neutral";
+    const keys = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const year = cursor.getFullYear();
+      const month = String(cursor.getMonth() + 1).padStart(2, "0");
+      const day = String(cursor.getDate()).padStart(2, "0");
+      keys.push(`${year}-${month}-${day}`);
+      cursor.setDate(cursor.getDate() + 1);
     }
+    return keys;
+  }
 
-    if (
-      subject.includes("deposito") ||
-      subject.includes("ingreso") ||
-      subject.includes("abono") ||
-      category.includes("deposito") ||
-      category.includes("ingreso")
-    ) {
-      return "in";
+  function getMonthRangeKeys() {
+    if (filteredMovements.length === 0) return [];
+    const parseDate = (value) => {
+      if (!value) return null;
+      const date = new Date(`${value}-01T00:00:00`);
+      if (Number.isNaN(date.getTime())) return null;
+      return date;
+    };
+
+    const dates = filteredMovements
+      .map((movement) => getDateKey(movement))
+      .filter(Boolean)
+      .map((value) => parseDate(value.slice(0, 7)))
+      .filter(Boolean);
+
+    if (dates.length === 0) return [];
+
+    const minDate = new Date(Math.min(...dates.map((date) => date.getTime())));
+    const maxDate = new Date(Math.max(...dates.map((date) => date.getTime())));
+    const start = parseDate(filters.dateFrom?.slice(0, 7)) || minDate;
+    const end = parseDate(filters.dateTo?.slice(0, 7)) || maxDate;
+    if (start > end) return [];
+
+    const keys = [];
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const last = new Date(end.getFullYear(), end.getMonth(), 1);
+    while (cursor <= last) {
+      const year = cursor.getFullYear();
+      const month = String(cursor.getMonth() + 1).padStart(2, "0");
+      keys.push(`${year}-${month}`);
+      cursor.setMonth(cursor.getMonth() + 1);
     }
-
-    return "out";
-  }
-
-  function formatAmount(amount, status) {
-    if (!amount) return "";
-    const normalized = normalizeAmount(amount);
-    if (status === "neutral") return normalized;
-    const sign = status === "in" ? "+" : "-";
-    if (/^[+-]/.test(normalized)) return normalized;
-    return `${sign}${normalized}`;
-  }
-
-  function resolveBank(movement) {
-    const metadata = movement?.metadata || {};
-    return movement?.bank || metadata?.transfer_details?.institution || "";
-  }
-
-  function getPaymentMethod(subject) {
-    const text = subject.toLowerCase();
-    if (text.includes("debit") || text.includes("debito")) return "Debito";
-    if (text.includes("credito") || text.includes("tc")) return "Credito";
-    return "";
-  }
-
-  function getFlags(movement) {
-    const category = normalizeText(movement?.category).toLowerCase();
-    const subject = getSubject(movement).toLowerCase();
-    const isTransfer =
-      category.includes("transfer") || subject.includes("transferencia");
-    const isConsumption =
-      category.includes("consumo") || subject.includes("compra");
-    const isWithdrawal =
-      category.includes("retiro") || subject.includes("retiro");
-    const isDeposit =
-      category.includes("deposito") || subject.includes("deposito");
-    return { isTransfer, isConsumption, isWithdrawal, isDeposit };
-  }
-
-  function getCounterpartyLabel(flags) {
-    if (flags.isTransfer) return "Para";
-    if (flags.isConsumption) return "Comercio";
-    if (flags.isDeposit) return "Origen";
-    if (flags.isWithdrawal) return "Ubicacion";
-    return "Contraparte";
-  }
-
-  function formatDateTime(movement) {
-    const raw = movement?.email_ts || movement?.created_at;
-    if (!raw) return "Fecha no disponible";
-    const date = new Date(raw);
-    if (Number.isNaN(date.getTime())) return String(raw);
-    return date.toLocaleString();
+    return keys;
   }
 
   const bankOptions = useMemo(() => {
     const values = new Set();
     movements.forEach((movement) => {
-      const value = resolveBank(movement);
+      const value = resolveMovementBank(movement);
       if (value) values.add(value);
     });
     return Array.from(values).sort();
@@ -176,7 +124,7 @@ export default function MovementsPage() {
       if (filters.dateTo && dateKey && dateKey > filters.dateTo) {
         return false;
       }
-      if (filters.bank && resolveBank(movement) !== filters.bank) {
+      if (filters.bank && resolveMovementBank(movement) !== filters.bank) {
         return false;
       }
       if (
@@ -188,6 +136,121 @@ export default function MovementsPage() {
       return true;
     });
   }, [filters, movements]);
+
+  const analytics = useMemo(() => {
+    const mode = filters.dateFrom || filters.dateTo ? "day" : "month";
+    let incomeTotal = 0;
+    let expenseTotal = 0;
+    const seriesMap = new Map();
+
+    filteredMovements.forEach((movement) => {
+      const amountValue = parseAmountValue(resolveMovementAmount(movement));
+      const status = getMovementAmountStatus(movement);
+      const dateKey =
+        mode === "month"
+          ? getDateKey(movement).slice(0, 7)
+          : getDateKey(movement);
+
+      if (status === "in") incomeTotal += amountValue;
+      if (status === "out") expenseTotal += amountValue;
+
+      if (!dateKey) return;
+      const current = seriesMap.get(dateKey) || {
+        dateKey,
+        income: 0,
+        expense: 0,
+      };
+      if (status === "in") current.income += amountValue;
+      if (status === "out") current.expense += amountValue;
+      seriesMap.set(dateKey, current);
+    });
+
+    const dateKeys = mode === "month" ? getMonthRangeKeys() : getDateRangeKeys();
+    const series = dateKeys.map((dateKey) => {
+      const existing = seriesMap.get(dateKey);
+      return (
+        existing || {
+          dateKey,
+          income: 0,
+          expense: 0,
+        }
+      );
+    });
+
+    const maxValue = series.reduce(
+      (max, item) => Math.max(max, item.income, item.expense),
+      0
+    );
+
+    return {
+      incomeTotal,
+      expenseTotal,
+      netTotal: incomeTotal - expenseTotal,
+      count: filteredMovements.length,
+      series,
+      maxValue,
+      mode,
+    };
+  }, [filteredMovements, filters.dateFrom, filters.dateTo]);
+
+  const chartPoints = useMemo(() => {
+    const width = 520;
+    const height = 200;
+    const padX = 24;
+    const padY = 20;
+    const usableWidth = width - padX * 2;
+    const usableHeight = height - padY * 2;
+    const maxValue = analytics.maxValue || 1;
+
+    if (analytics.series.length === 0) {
+      return { width, height, income: [], expense: [] };
+    }
+
+    const step =
+      analytics.series.length > 1
+        ? usableWidth / (analytics.series.length - 1)
+        : 0;
+
+    const income = analytics.series.map((item, index) => {
+      const x =
+        analytics.series.length === 1
+          ? padX + usableWidth / 2
+          : padX + step * index;
+      const y = padY + (1 - item.income / maxValue) * usableHeight;
+      return { x, y, dateKey: item.dateKey, value: item.income };
+    });
+
+    const expense = analytics.series.map((item, index) => {
+      const x =
+        analytics.series.length === 1
+          ? padX + usableWidth / 2
+          : padX + step * index;
+      const y = padY + (1 - item.expense / maxValue) * usableHeight;
+      return { x, y, dateKey: item.dateKey, value: item.expense };
+    });
+
+    return { width, height, income, expense };
+  }, [analytics]);
+
+  const axisLabels = useMemo(() => {
+    if (analytics.series.length === 0) return [];
+    if (analytics.mode === "month") {
+      const years = new Set(
+        analytics.series.map((item) => item.dateKey.split("-")[0])
+      );
+      const includeYear = years.size > 1;
+      return analytics.series.map((item) =>
+        formatMonthLabel(item.dateKey, includeYear)
+      );
+    }
+
+    const labels = analytics.series.map(() => "");
+    labels[0] = formatDateShort(analytics.series[0].dateKey);
+    labels[labels.length - 1] = formatDateShort(
+      analytics.series[analytics.series.length - 1].dateKey
+    );
+    return labels;
+  }, [analytics]);
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -238,154 +301,224 @@ export default function MovementsPage() {
     <div className="page movements-page">
       <Navbar />
 
-      <div className="movements-container">
-        <div className="movements-header">
-          <div>
-            <p className="eyebrow">Movimientos</p>
-            <h1>Historial</h1>
+      <div className="movements-layout">
+        <section className="insight-card chart-card">
+          <div className="insight-head">
+            <div>
+              <p className="eyebrow">Analitica</p>
+              <h2>Ingresos vs gastos</h2>
+            </div>
+          </div>
+          <div className="chart-legend">
+            <span className="legend-item">
+              <span className="legend-dot legend-dot--in" />
+              Ingresos
+            </span>
+            <span className="legend-item">
+              <span className="legend-dot legend-dot--out" />
+              Gastos
+            </span>
+          </div>
+          {analytics.series.length === 0 ? (
+            <p className="muted">Sin datos para graficas.</p>
+          ) : (
+            <div className="line-chart">
+              <svg
+                viewBox={`0 0 ${chartPoints.width} ${chartPoints.height}`}
+                aria-label="Ingresos vs gastos"
+              >
+                {[0.2, 0.4, 0.6, 0.8].map((fraction) => (
+                  <line
+                    key={fraction}
+                    className="line-grid"
+                    x1="0"
+                    x2={chartPoints.width}
+                    y1={chartPoints.height * fraction}
+                    y2={chartPoints.height * fraction}
+                  />
+                ))}
+                <polyline
+                  className="line-series line-series--out"
+                  points={chartPoints.expense
+                    .map((point) => `${point.x},${point.y}`)
+                    .join(" ")}
+                />
+                <polyline
+                  className="line-series line-series--in"
+                  points={chartPoints.income
+                    .map((point) => `${point.x},${point.y}`)
+                    .join(" ")}
+                />
+                {chartPoints.expense.map((point) => (
+                  <circle
+                    key={`out-${point.dateKey}`}
+                    className="line-point line-point--out"
+                    cx={point.x}
+                    cy={point.y}
+                    r="3.5"
+                  />
+                ))}
+                {chartPoints.income.map((point) => (
+                  <circle
+                    key={`in-${point.dateKey}`}
+                    className="line-point line-point--in"
+                    cx={point.x}
+                    cy={point.y}
+                    r="3.5"
+                  />
+                ))}
+                {axisLabels.map((label, index) => {
+                  if (!label) return null;
+                  const point = chartPoints.income[index];
+                  if (!point) return null;
+                  return (
+                    <text
+                      key={`${analytics.series[index].dateKey}-label`}
+                      className="line-axis-label"
+                      x={point.x}
+                      y={chartPoints.height - 4}
+                      textAnchor="middle"
+                    >
+                      {label}
+                    </text>
+                  );
+                })}
+              </svg>
+            </div>
+          )}
+        </section>
+
+        <div className="insight-grid">
+          <div className="insight-card">
+            <p className="insight-label">Ingresos</p>
+            <p className="insight-value insight-value--in">
+              {formatSignedUsd(analytics.incomeTotal)}
+            </p>
+          </div>
+          <div className="insight-card">
+            <p className="insight-label">Gastos</p>
+            <p className="insight-value insight-value--out">
+              {formatSignedUsd(-analytics.expenseTotal)}
+            </p>
+          </div>
+          <div className="insight-card">
+            <p className="insight-label">Neto</p>
+            <p className="insight-value insight-value--net">
+              {formatSignedUsd(analytics.netTotal)}
+            </p>
+          </div>
+          <div className="insight-card">
+            <p className="insight-label">Movimientos</p>
+            <p className="insight-value">{analytics.count}</p>
           </div>
         </div>
 
-        {!loading && !error && (
-          <>
-            <div className="movements-filters">
-              <label className="filter-field">
-                <span className="filter-label">Desde</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={filters.dateFrom}
-                  onChange={(e) => updateFilter("dateFrom", e.target.value)}
-                />
-              </label>
-              <label className="filter-field">
-                <span className="filter-label">Hasta</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={filters.dateTo}
-                  onChange={(e) => updateFilter("dateTo", e.target.value)}
-                />
-              </label>
-              <label className="filter-field">
-                <span className="filter-label">Banco</span>
-                <select
-                  className="input"
-                  value={filters.bank}
-                  onChange={(e) => updateFilter("bank", e.target.value)}
-                >
-                  <option value="">Todos</option>
-                  {bankOptions.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="filter-field">
-                <span className="filter-label">Categoria</span>
-                <select
-                  className="input"
-                  value={filters.category}
-                  onChange={(e) => updateFilter("category", e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {categoryOptions.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </label>
+        <div className="movements-main">
+          <div className="movements-container">
+            <div className="movements-header">
+              <div>
+                <p className="eyebrow">Movimientos</p>
+                <h1>Historial</h1>
+              </div>
             </div>
-            <div className="movements-actions">
-              <button className="btn btn--ghost" type="button" onClick={clearFilters}>
-                Limpiar filtros
-              </button>
-            </div>
-          </>
-        )}
 
-        {loading && <p className="muted">Cargando movimientos...</p>}
+            {!loading && !error && (
+              <>
+                <div className="movements-filters">
+                  <label className="filter-field">
+                    <span className="filter-label">Desde</span>
+                    <input
+                      className="input"
+                      type="date"
+                      value={filters.dateFrom}
+                      onChange={(e) => updateFilter("dateFrom", e.target.value)}
+                    />
+                  </label>
+                  <label className="filter-field">
+                    <span className="filter-label">Hasta</span>
+                    <input
+                      className="input"
+                      type="date"
+                      value={filters.dateTo}
+                      onChange={(e) => updateFilter("dateTo", e.target.value)}
+                    />
+                  </label>
+                  <label className="filter-field">
+                    <span className="filter-label">Banco</span>
+                    <select
+                      className="input"
+                      value={filters.bank}
+                      onChange={(e) => updateFilter("bank", e.target.value)}
+                    >
+                      <option value="">Todos</option>
+                      {bankOptions.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="filter-field">
+                    <span className="filter-label">Categoria</span>
+                    <select
+                      className="input"
+                      value={filters.category}
+                      onChange={(e) => updateFilter("category", e.target.value)}
+                    >
+                      <option value="">Todas</option>
+                      {categoryOptions.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="movements-actions">
+                  <button
+                    className="btn btn--ghost"
+                    type="button"
+                    onClick={clearFilters}
+                  >
+                    Limpiar filtros
+                  </button>
+                </div>
+              </>
+            )}
 
-        {!loading && error && (
-          <div className="empty-state movements-empty">
-            <img
-              className="empty-illustration"
-              src={buhosImg}
-              alt="Buhos trabajando"
-            />
-            <p className="empty-title">Estamos trabajando en eso...</p>
-            <p className="muted">{error}</p>
+            {loading && <p className="muted">Cargando movimientos...</p>}
+
+            {!loading && error && (
+              <div className="empty-state movements-empty">
+                <img
+                  className="empty-illustration"
+                  src={buhosImg}
+                  alt="Buhos trabajando"
+                />
+                <p className="empty-title">Estamos trabajando en eso...</p>
+                <p className="muted">{error}</p>
+              </div>
+            )}
+
+            {!loading && !error && movements.length === 0 && (
+              <p className="muted">No hay movimientos registrados.</p>
+            )}
+            {!loading &&
+              !error &&
+              movements.length > 0 &&
+              filteredMovements.length === 0 && (
+                <p className="muted">
+                  Sin resultados con los filtros actuales.
+                </p>
+              )}
+
+            {!loading &&
+              !error &&
+              filteredMovements.map((movement) => (
+                <MovementCard key={movement.id} movement={movement} />
+              ))}
           </div>
-        )}
-
-        {!loading && !error && movements.length === 0 && (
-          <p className="muted">No hay movimientos registrados.</p>
-        )}
-        {!loading && !error && movements.length > 0 && filteredMovements.length === 0 && (
-          <p className="muted">Sin resultados con los filtros actuales.</p>
-        )}
-
-        {!loading &&
-          !error &&
-          filteredMovements.map((movement) => (
-            <div className="movement-card" key={movement.id}>
-              {(() => {
-                const subject = getSubject(movement);
-                const rawAmount = resolveAmount(movement);
-                const amountStatus = getAmountStatus(movement);
-                const amount = formatAmount(rawAmount, amountStatus);
-                const counterparty = resolveCounterparty(movement);
-                const bank = resolveBank(movement);
-                const flags = getFlags(movement);
-                const paymentMethod = flags.isConsumption
-                  ? getPaymentMethod(subject)
-                  : "";
-                const counterpartyLabel = getCounterpartyLabel(flags);
-                return (
-                  <div className="movement-row">
-                    <div className="movement-info">
-                      <p className="movement-date">
-                        {formatDateTime(movement)}
-                      </p>
-                      <p className="movement-subject">{subject}</p>
-                      <div className="movement-meta">
-                        {amount && (
-                          <span
-                            className={`movement-amount movement-amount--${amountStatus}`}
-                          >
-                            {amount}
-                          </span>
-                        )}
-                        {!flags.isWithdrawal && (
-                          <span className="movement-meta-item">
-                            <span className="movement-meta-label">
-                              {counterpartyLabel}
-                            </span>
-                            <span>{counterparty}</span>
-                          </span>
-                        )}
-                        {flags.isTransfer && bank && (
-                          <span className="movement-meta-item">
-                            <span className="movement-meta-label">Banco</span>
-                            <span>{bank}</span>
-                          </span>
-                        )}
-                        {paymentMethod && (
-                          <span className="movement-meta-item">
-                            <span className="movement-meta-label">Metodo</span>
-                            <span>{paymentMethod}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                  </div>
-                );
-              })()}
-            </div>
-          ))}
+        </div>
       </div>
     </div>
   );

@@ -138,3 +138,140 @@
 .movements-empty {
   margin-top: 8px;
 }
+
+.movements-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.movements-main {
+  min-width: 0;
+}
+
+.chart-card {
+  width: 100%;
+}
+
+.insight-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.insight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.legend-dot--in {
+  background: var(--success);
+}
+
+.legend-dot--out {
+  background: #ff9aa8;
+}
+
+.line-chart {
+  margin-top: 8px;
+}
+
+.line-chart svg {
+  width: 100%;
+  height: 240px;
+  display: block;
+}
+
+.line-grid {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-dasharray: 4 6;
+}
+
+.line-series {
+  fill: none;
+  stroke-width: 2.4;
+}
+
+.line-series--in {
+  stroke: rgba(122, 223, 186, 0.95);
+}
+
+.line-series--out {
+  stroke: rgba(255, 154, 168, 0.9);
+}
+
+.line-point {
+  stroke: rgba(13, 16, 24, 0.9);
+  stroke-width: 2;
+}
+
+.line-point--in {
+  fill: rgba(122, 223, 186, 0.95);
+}
+
+.line-point--out {
+  fill: rgba(255, 154, 168, 0.9);
+}
+
+.line-axis-label {
+  fill: var(--text-secondary);
+  font-size: 10px;
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.insight-label {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.insight-value {
+  margin: 8px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.insight-value--in {
+  color: var(--success);
+}
+
+.insight-value--out {
+  color: #ff9aa8;
+}
+
+.insight-value--net {
+  color: var(--accent);
+}
