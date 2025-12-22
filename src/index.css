@@ -92,6 +92,37 @@ p {
     }
 }
 
+@media (max-width: 900px) {
+    .page {
+        padding: 18px 16px 24px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .topbar-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .topbar-actions .btn {
+        flex: 1 1 auto;
+    }
+
+    .card {
+        padding: 18px;
+    }
+
+    .dashboard-shell {
+        padding: 14px;
+        height: auto;
+        max-height: none;
+    }
+}
+
 .topbar {
     display: flex;
     align-items: center;
@@ -360,6 +391,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .reminder-card__amount {
     font-weight: 700;
     color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card__head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .reminder-card__head,
+    .reminder-card__meta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .reminder-card__amount {
+        font-size: 14px;
+    }
 }
 
 .pill {
