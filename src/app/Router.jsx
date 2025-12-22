@@ -4,6 +4,8 @@ import { useSession } from "../auth/useSession";
 import LoginPage from "../pages/LoginPage";
 import DashboardPage from "../pages/DashboardPage";
 import MovementsPage from "../pages/MovementsPage";
+import RemindersPage from "../pages/Reminders/RemindersPage";
+import NewReminderPage from "../pages/Reminders/NewReminderPage";
 
 export default function AppRouter() {
   const { session, loading } = useSession();
@@ -27,6 +29,14 @@ export default function AppRouter() {
         <Route
           path="/movements"
           element={session ? <MovementsPage /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/reminders"
+          element={session ? <RemindersPage /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/reminders/new"
+          element={session ? <NewReminderPage /> : <Navigate to="/login" />}
         />
       </Routes>
     </BrowserRouter>
