@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../api/supabaseClient";
 import ReminderCard from "../../components/Remiders/ReminderCard";
+import {
+  getNextDueDateOnPay,
+  getUpcomingDueDate,
+} from "../../utils/recurrence";
+import "../../styles/reminders.css";
 
 export default function RemindersPage() {
   const [reminders, setReminders] = useState([]);
@@ -15,14 +20,62 @@ export default function RemindersPage() {
       .from("reminders")
       .select("*")
       .order("due_date");
-    setReminders(data || []);
+    const normalized = (data || []).map((reminder) => {
+      const isActive = reminder.is_active !== false;
+      if (
+        isActive &&
+        reminder.is_recurring &&
+        !reminder.is_paid &&
+        reminder.due_date
+      ) {
+        const effective = getUpcomingDueDate(reminder);
+        const hasTime =
+          typeof reminder.due_date === "string" && reminder.due_date.includes("T");
+        return {
+          ...reminder,
+          due_date_effective: hasTime
+            ? effective.toISOString()
+            : effective.toISOString().split("T")[0],
+        };
+      }
+      return reminder;
+    });
+    setReminders(normalized);
   }
 
-  async function markAsPaid(id) {
+  async function markAsPaid(reminder) {
+    if (reminder.is_recurring) {
+      const nextDate = getNextDueDateOnPay(reminder);
+      const storeWithTime = reminder.recurrence_type === "daily";
+      await supabase
+        .from("reminders")
+        .update({
+          due_date: storeWithTime
+            ? nextDate.toISOString()
+            : nextDate.toISOString().split("T")[0],
+          paid_at: new Date().toISOString(),
+          is_paid: false,
+        })
+        .eq("id", reminder.id);
+    } else {
+      await supabase
+        .from("reminders")
+        .update({
+          is_paid: true,
+          paid_at: new Date().toISOString(),
+        })
+        .eq("id", reminder.id);
+    }
+
+    load();
+  }
+
+  async function toggleActive(reminder) {
+    const nextActive = reminder.is_active === false;
     await supabase
       .from("reminders")
-      .update({ is_paid: true, paid_at: new Date() })
-      .eq("id", id);
+      .update({ is_active: nextActive })
+      .eq("id", reminder.id);
 
     load();
   }
@@ -51,9 +104,16 @@ export default function RemindersPage() {
         {reminders.length === 0 && (
           <p className="muted">No hay recordatorios.</p>
         )}
-        {reminders.map((r) => (
-          <ReminderCard key={r.id} reminder={r} onPay={markAsPaid} />
-        ))}
+        <div className="reminders-grid">
+          {reminders.map((r) => (
+            <ReminderCard
+              key={r.id}
+              reminder={r}
+              onPay={() => markAsPaid(r)}
+              onToggleActive={() => toggleActive(r)}
+            />
+          ))}
+        </div>
       </section>
     </div>
   );

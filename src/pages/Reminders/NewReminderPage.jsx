@@ -2,6 +2,7 @@
 import { supabase } from "../../api/supabaseClient";
 import ReminderForm from "../../components/Remiders/ReminderForm";
 import { Link, useNavigate } from "react-router-dom";
+import "../../styles/reminders.css";
 
 export default function NewReminderPage() {
   const navigate = useNavigate();
@@ -21,14 +22,10 @@ export default function NewReminderPage() {
           </div>
         </div>
 
-        <div className="topbar-actions">
-          <Link className="btn btn--ghost" to="/reminders">
-            Volver
-          </Link>
-        </div>
+        
       </header>
 
-      <section className="card">
+      <section className="card reminder-form-card">
         <ReminderForm onSubmit={handleSubmit} />
       </section>
     </div>
